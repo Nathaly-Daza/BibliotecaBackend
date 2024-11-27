@@ -34,9 +34,10 @@ class Service extends Model
     {
         $services = DB::table('services AS ser')
             ->join('service_types AS st', 'st.ser_typ_id', '=', 'ser.ser_typ_id')
-            ->join('profesionals AS pro', 'pro.prof_id', '=', 'ser.prof_id')
+            ->join('users AS pro', 'pro.use_id', '=', 'ser.prof_id')
+            ->join('persons AS per', 'pro.use_id', '=', 'per.use_id')
 
-            ->select('ser.ser_id', 'ser.ser_name', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'ser_quotas', 'st.ser_typ_id', 'st.ser_typ_name', 'pro.prof_name')
+            ->select('ser.ser_id', 'ser.ser_name', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'ser_quotas', 'st.ser_typ_id', 'st.ser_typ_name', 'per.per_name', 'per_lastname')
             ->orderBy('ser.ser_id', 'DESC')->get();
 
         foreach ($services as $serviceKey) {
@@ -68,16 +69,16 @@ class Service extends Model
         $actualHour = Carbon::now('America/Bogota')->format('H:i');
         // Trae todos los datos de usuarios y salas según el id que trae el request
 
-        $profesional = Profesional::find($request->prof_id);
+        $profesional = User::find($request->use_id);
         if ($profesional == null) {
             return response()->json([
                 'status' => False,
-                'message' => "El profesional no existe."
+                'message' => "El usario no existe."
             ], 400);
         } elseif ($profesional->prof_status == 0) {
             return response()->json([
                 'status' => False,
-                'message' => "El profesional no está disponible."
+                'message' => "El usuario no está disponible."
             ], 400);
         }
         // Convertimos los valores de hora que nos pasa el usuario a datos tipo Carbon
@@ -100,7 +101,7 @@ class Service extends Model
 
 
                     $servicesUsers = DB::table('services AS ser')
-                        ->join('profesionals AS pro', 'pro.prof_id', '=', 'ser.prof_id')
+                        ->join('users AS pro', 'pro.use_id', '=', 'ser.prof_id')
 
                         ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'pro.prof_name', 'pro.prof_id')
                         ->where('ser.ser_date', '=', $request->ser_date)

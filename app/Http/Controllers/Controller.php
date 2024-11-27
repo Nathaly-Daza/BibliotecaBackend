@@ -26,7 +26,7 @@ class Controller extends BaseController
         }else{
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
-            ])->get('http://10.10.1.123/fabrica_general/public/index.php/api/projects');
+            ])->get('http://127.0.0.1:8088/api/projects');
 
             if ($response->successful()) {
                 return response()->json([
@@ -45,7 +45,7 @@ class Controller extends BaseController
         // $token = Controller::auth();
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->get('http://10.10.1.123/fabrica_general/public/index.php/api/genders/'.$id);
+        ])->get('http://127.0.0.1:8088/api/genders/'.$id);
 
         if ($response->successful()) {
             return response()->json([
