@@ -34,8 +34,8 @@ class Service extends Model
     {
         $services = DB::table('services AS ser')
             ->join('service_types AS st', 'st.ser_typ_id', '=', 'ser.ser_typ_id')
-            ->join('users AS pro', 'pro.use_id', '=', 'ser.prof_id')
-            ->join('persons AS per', 'pro.use_id', '=', 'per.use_id')
+            ->join('users AS use', 'use.use_id', '=', 'ser.prof_id')
+            ->join('persons AS per', 'use.use_id', '=', 'per.use_id')
 
             ->select('ser.ser_id', 'ser.ser_name', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'ser_quotas', 'st.ser_typ_id', 'st.ser_typ_name', 'per.per_name', 'per_lastname')
             ->orderBy('ser.ser_id', 'DESC')->get();
@@ -69,13 +69,13 @@ class Service extends Model
         $actualHour = Carbon::now('America/Bogota')->format('H:i');
         // Trae todos los datos de usuarios y salas según el id que trae el request
 
-        $profesional = User::find($request->use_id);
-        if ($profesional == null) {
+        $user = User::find($request->use_id);
+        if ($user == null) {
             return response()->json([
                 'status' => False,
                 'message' => "El usario no existe."
             ], 400);
-        } elseif ($profesional->prof_status == 0) {
+        } elseif ($user->use_status == 0) {
             return response()->json([
                 'status' => False,
                 'message' => "El usuario no está disponible."
@@ -90,7 +90,7 @@ class Service extends Model
         if ($request->ser_date >= $date && $request->ser_start >= "07:00" && $request->ser_end <= "19:00" && $serType->ser_typ_status != 0) {
 
             // Se comprueba que el profesional este habilitado
-            if ($profesional->prof_status != 0) {
+            if ($user->use_status != 0) {
                 // Se comprueba que la reserva sea minimo de treinta minutos y máximo de dos horas.
                 if ($request->ser_end >= $minHourFormat && $request->ser_start < $request->ser_end) {
 
@@ -101,18 +101,20 @@ class Service extends Model
 
 
                     $servicesUsers = DB::table('services AS ser')
-                        ->join('users AS pro', 'pro.use_id', '=', 'ser.prof_id')
+                        ->join('users AS use', 'use.use_id', '=', 'ser.prof_id')
+                        ->join('persons AS per', 'use.use_id', '=', 'per.use_id')
 
-                        ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'pro.prof_name', 'pro.prof_id')
+                        ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'per.per_name','per.per_lastname', 'use.use_id')
                         ->where('ser.ser_date', '=', $request->ser_date)
                         ->get();
 
                     $validateDay = DB::table('services AS ser')
-                        ->join('profesionals AS pro', 'pro.prof_id', '=', 'ser.prof_id')
+                        ->join('users AS use', 'use.use_id', '=', 'ser.prof_id')
+                        ->join('persons AS per', 'use.use_id', '=', 'per.use_id')
 
-                        ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'pro.prof_name', 'pro.prof_id')
+                        ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'per.per_name','per.per_lastname', 'use.use_id')
                         ->where('ser.ser_date', '=', $request->ser_date)
-                        ->where('pro.prof_id', '=', $request->prof_id)->get();
+                        ->where('use.use_id', '=', $request->prof_id)->get();
                     if ($servicesUsers->isEmpty()) {
                         if ($request->ser_date == $date && $request->ser_start <= $actualHour) {
                             return response()->json([
@@ -128,7 +130,7 @@ class Service extends Model
                                 Controller::NewRegisterTrigger("Se realizó una inserción de datos en la tabla services ", 3, $proj_id, $use_id);
                                 return response()->json([
                                     'status' => True,
-                                    'message' => 'La reserva con el profesional ' . $profesional->prof_name . ' se creo exitosamente el dia ' . $services->ser_date . '.',
+                                    'message' => 'La reserva con el profesional ' . $user->use_mail . ' se creo exitosamente el dia ' . $services->ser_date . '.',
                                 ], 200);
                             } else {
 
@@ -152,7 +154,7 @@ class Service extends Model
                                 Controller::NewRegisterTrigger("Se realizó una inserción de datos en la tabla services ", 3, $proj_id, $use_id);
                                 return response()->json([
                                     'status' => True,
-                                    'message' => 'La reserva con el profesional  ' . $profesional->prof_name . ' se creó exitosamente el dia ' . $services->ser_date . '.',
+                                    'message' => 'La reserva con el profesional  ' . $user->use_mail. ' se creó exitosamente el dia ' . $services->ser_date . '.',
                                 ], 200);
                             }
                         }
@@ -178,7 +180,7 @@ class Service extends Model
                             Controller::NewRegisterTrigger("Se realizó una inserción de datos en la tabla services ", 3, $proj_id, $use_id);
                             return response()->json([
                                 'status' => True,
-                                'message' => 'La reserva con el profesional ' . $profesional->prof_name . ' se creo exitosamente el dia ' . $services->ser_date . '.',
+                                'message' => 'La reserva con el profesional ' . $user->use_mail . ' se creo exitosamente el dia ' . $services->ser_date . '.',
 
                             ], 200);
                         } else {
@@ -189,7 +191,7 @@ class Service extends Model
                             Controller::NewRegisterTrigger("Se realizó una inserción de datos en la tabla services ", 3, $proj_id, $use_id);
                             return response()->json([
                                 'status' => True,
-                                'message' => 'La reserva con el profesional  ' . $profesional->prof_name . ' se creó exitosamente el dia ' . $services->ser_date . '.',
+                                'message' => 'La reserva con el profesional  ' . $user->use_mail.' se creó exitosamente el dia ' . $services->ser_date . '.',
 
                             ], 200);
                         }
@@ -209,7 +211,7 @@ class Service extends Model
                                     // Hay superposición, la nueva reserva no es posible
                                     return response()->json([
                                         'status' => False,
-                                        'message' => 'El profesional ' . $servicesUsersKey->prof_name . ' se encuentra ocupado en esta hora o fecha especifica.'
+                                        'message' => 'El profesional ' . $servicesUsersKey->use_mail . ' se encuentra ocupado en esta hora o fecha especifica.'
                                     ], 400);
                                 }
                             }
@@ -221,7 +223,7 @@ class Service extends Model
                         Controller::NewRegisterTrigger("Se realizó una inserción de datos en la tabla services ", 3, $proj_id, $use_id);
                         return response()->json([
                             'status' => True,
-                            'message' => 'La reserva con el profesional ' . $profesional->prof_name . ' se creo exitosamente el dia ' . $services->ser_date . '.',
+                            'message' => 'La reserva con el profesional ' . $user->use_mail. ' se creo exitosamente el dia ' . $services->ser_date . '.',
                         ], 200);
                     }
                 } else {
@@ -233,7 +235,7 @@ class Service extends Model
             } else {
                 return response()->json([
                     'status' => False,
-                    'message' => 'El profesional ' . $profesional->prof_name . ' no está disponible.'
+                    'message' => 'El profesional ' . $user->use_mail. ' no está disponible.'
                 ], 400);
             }
         } else {
@@ -250,8 +252,9 @@ class Service extends Model
     public static function FindOne($id)
     {
         $service = DB::table('services AS ser')
-            ->join('profesionals AS pro', 'pro.prof_id', '=', 'ser.prof_id')
-            ->select('ser.ser_id', 'ser.ser_name', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'ser.ser_quotas', 'pro.prof_name')
+            ->join('users AS use', 'use.use_id', '=', 'ser.prof_id')
+            ->join('persons AS per', 'per.use_id', '=', 'use.use_id')
+            ->select('ser.ser_id', 'ser.ser_name', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'ser.ser_quotas', 'per.per_name', 'per.per_lastname')
             ->where('ser.ser_id', '=', $id)
             ->first();
             if($service == null){
@@ -297,13 +300,13 @@ class Service extends Model
                 'message' => "El número de cupos es menor al numero de estudiantes actualmente registrados."
             ], 400);
         }
-        $profesional = Profesional::find($request->prof_id);
-        if ($profesional == null) {
+        $user = User::find($request->use_id);
+        if ($user == null) {
             return response()->json([
                 'status' => False,
                 'message' => "El profesional no existe."
             ], 400);
-        } elseif ($profesional->prof_status == 0) {
+        } elseif ($user->use_status == 0) {
             return response()->json([
                 'status' => False,
                 'message' => "El profesional no está disponible."
@@ -329,7 +332,7 @@ class Service extends Model
         if ($request->ser_date >= $date && $request->ser_start >= "07:00" && $request->ser_end <= "19:00") {
             // Se comprueba que la sala este habilitada
             // Se comprueba que la reserva sea minimo de treinta minutos y máximo de dos horas.
-            if ($request->ser_end >= $minHourFormat && $request->ser_end <= $maxHourFormat && $request->ser_start < $request->ser_end && $profesional->prof_status != 0) {
+            if ($request->ser_end >= $minHourFormat && $request->ser_end <= $maxHourFormat && $request->ser_start < $request->ser_end && $user->use_status != 0) {
 
 
 
@@ -338,18 +341,20 @@ class Service extends Model
                             WHERE services.ser_date = '$request->ser_date' AND services.ser_status = 1");
                 $totalservicesDayCount = $totalservicesDay[0]->total_ser;
                 $servicesUsers = DB::table('services AS ser')
-                    ->join('profesionals AS pro', 'pro.prof_id', '=', 'ser.prof_id')
+                    ->join('users AS use', 'use.use_id', '=', 'ser.prof_id')
+                    ->join('persons AS per', 'per.use_id', '=', 'use.use_id')
 
-                    ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'pro.prof_name', 'pro.prof_id')
+                    ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'per.per_name','per.per_lastname', 'use.use_id')
                     ->where('ser.ser_date', '=', $request->ser_date)
                     ->get();
 
                 $validateDay = DB::table('services AS ser')
-                    ->join('profesionals AS pro', 'pro.prof_id', '=', 'ser.prof_id')
+                    ->join('users AS use', 'use.use_id', '=', 'ser.prof_id')
+                    ->join('persons AS per', 'per.use_id', '=', 'use.use_id')
 
-                    ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'pro.prof_name', 'pro.prof_id')
+                    ->select('ser.ser_id', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'per.per_name','per.per_lastname', 'use.use_id')
                     ->where('ser.ser_date', '=', $request->ser_date)
-                    ->where('pro.prof_id', '=', $request->prof_id)->get();
+                    ->where('use.use_id', '=', $request->prof_id)->get();
 
 
                 if ($servicesUsers->isEmpty()) {
@@ -374,7 +379,7 @@ class Service extends Model
                         Controller::NewRegisterTrigger("Se realizó una actualización de datos en la tabla services ", 1, $proj_id, $use_id);
                         return response()->json([
                             'status' => True,
-                            'message' => 'La reserva con el profesional  ' . $profesional->prof_name . ' se actualizó exitosamente el dia ' . $services->ser_date . '.'
+                            'message' => 'La reserva con el profesional  ' . $user->use_mail . ' se actualizó exitosamente el dia ' . $services->ser_date . '.'
                         ], 200);
                     } else {
                         foreach ($validateDay as $validateDayKey) {
@@ -397,7 +402,7 @@ class Service extends Model
 
                                 return response()->json([
                                     'status' => True,
-                                    'message' => 'La reserva con el profesional ' . $profesional->prof_name . ' se actualizó exitosamente el dia ' . $services->ser_date . '.'
+                                    'message' => 'La reserva con el profesional ' . $user->use_mail . ' se actualizó exitosamente el dia ' . $services->ser_date . '.'
                                 ], 200);
                             } elseif ($newSerStart->lt($validatedSerEnd) && $newSerEnd->gt($validatedSerStart) && $validateDayKey->ser_status == 1) {
                                 // Hay superposición, la nueva reserva no es posible
@@ -422,7 +427,7 @@ class Service extends Model
 
                         return response()->json([
                             'status' => True,
-                            'message' => 'La reserva con el profesional ' . $profesional->prof_name . ' se actualizó exitosamente el dia ' . $services->ser_date . '.'
+                            'message' => 'La reserva con el profesional ' . $user->use_mail . ' se actualizó exitosamente el dia ' . $services->ser_date . '.'
                         ], 200);
                     }
                 } else {
@@ -438,7 +443,7 @@ class Service extends Model
                             $validatedSerStart = carbon::parse($validateDayKey->ser_start);
                             $validatedSerEnd = carbon::parse($validateDayKey->ser_end);
 
-                            if ($newSerStart->lt($validatedSerEnd) && $newSerEnd->gt($validatedSerStart) && $validateDayKey->prof_id == $request->prof_id && $validateDayKey->ser_id != $id) {
+                            if ($newSerStart->lt($validatedSerEnd) && $newSerEnd->gt($validatedSerStart) && $validateDayKey->use_id == $request->prof_id && $validateDayKey->ser_id != $id) {
                                 // Hay superposición, la nueva reserva no es posible
                                 return response()->json([
                                     'status' => False,
@@ -450,7 +455,7 @@ class Service extends Model
                         foreach ($servicesUsers as $servicesUsersKey) {
                             $validatedResStart = carbon::parse($servicesUsersKey->ser_start);
                             $validatedResEnd = carbon::parse($servicesUsersKey->ser_end);
-                            if ($newSerStart->lt($validatedResEnd) && $newSerEnd->gt($validatedResStart) && $request->prof_id == $servicesUsersKey->prof_id && $servicesUsersKey->ser_status == 1 && $servicesUsersKey->ser_id != $id) {
+                            if ($newSerStart->lt($validatedResEnd) && $newSerEnd->gt($validatedResStart) && $request->prof_id == $servicesUsersKey->use_id && $servicesUsersKey->ser_status == 1 && $servicesUsersKey->ser_id != $id) {
                                 return response()->json([
                                     'status' => False,
                                     'message' => 'Ya existe una reservación en este momento.'
@@ -474,7 +479,7 @@ class Service extends Model
                                 return response()->json([
 
                                     'status' => True,
-                                    'message' => 'La reserva con el profesional ' . $profesional->prof_name . ' se actualizó exitosamente el dia' . $services->ser_date . '.'
+                                    'message' => 'La reserva con el profesional ' . $user->use_mail . ' se actualizó exitosamente el dia' . $services->ser_date . '.'
                                 ], 200);
                             }
                         }
@@ -499,7 +504,7 @@ class Service extends Model
                         return response()->json([
 
                             'status' => True,
-                            'message' => 'La reserva con el profesional ' . $profesional->prof_name . ' se actualizó exitosamente el dia' . $services->ser_date . '.'
+                            'message' => 'La reserva con el profesional ' . $user->use_mail . ' se actualizó exitosamente el dia' . $services->ser_date . '.'
                         ], 200);
                     } else {
                         foreach ($validateDay as $validateDayKey) {
@@ -528,7 +533,7 @@ class Service extends Model
                         Controller::NewRegisterTrigger("Se realizó una actualización de datos en la tabla services ", 1, $proj_id, $use_id);
                         return response()->json([
                             'status' => True,
-                            'message' => 'La reserva con el profesional' . $profesional->prof_name . ' se actualizó exitosamente el dia' . $services->ser_date . '.'
+                            'message' => 'La reserva con el profesional' . $user->use_mail . ' se actualizó exitosamente el dia' . $services->ser_date . '.'
                         ], 200);
                     }
                 }
@@ -539,8 +544,8 @@ class Service extends Model
                 ], 400);
             }
         } else {
-            $message = ($profesional->prof_status == 0)
-                ? 'El profesional ' . $profesional->prof_name . ' no está disponible.'
+            $message = ($user->prof_status == 0)
+                ? 'El profesional ' . $user->user_mail. ' no está disponible.'
                 : 'Hora invalida, el profesional debe ser reservado entre las 7:00AM y las 7:00PM del ' . $date . ', o una fecha posterior.';
             return response()->json([
                 'status' => False,
@@ -559,11 +564,12 @@ class Service extends Model
             'services.ser_end AS Hora fin',
             'services.ser_quotas AS Cupos',
             'service_types.ser_typ_name AS Tipo Servicio',
-            'profesionals.prof_name AS Profesional',
+            'persons.per_name AS Profesional',
 
             'services.ser_status AS Estado'
         )->join('service_types', 'services.ser_typ_id', '=', 'service_types.ser_typ_id')
-            ->join('profesionals', 'services.prof_id', '=', 'profesionals.prof_id')
+            ->join('users', 'users.use_id', '=', 'services.prof_id')
+            ->join('persons', 'persons.use_id', '=', 'users.per_id')
             ->where("services." . $column, 'like', '%' . $data . '%')->OrderBy("services." . $column, 'DESC')->get();
         return $reservation;
     }
@@ -579,11 +585,12 @@ class Service extends Model
             'services.ser_end AS Hora fin',
             'services.ser_quotas AS Cupos',
             'service_types.ser_typ_name AS Tipo Servicio',
-            'profesionals.prof_name AS Profesional',
+            'persons.per_name AS Profesional',
 
             'services.ser_status AS Estado'
         )->join('service_types', 'services.ser_typ_id', '=', 'service_types.ser_typ_id')
-            ->join('profesionals', 'services.prof_id', '=', 'profesionals.prof_id')
+        ->join('users', 'users.use_id', '=', 'services.prof_id')
+        ->join('persons', 'persons.use_id', '=', 'users.per_id')
             ->where("ser_date", ">=", $date)->where("ser_status", "=", 1)->get();
 
 
@@ -594,9 +601,10 @@ class Service extends Model
         $date = date('Y-m-d');
         $reservation = DB::select("SELECT services.ser_id AS 'No. Servicio', services.ser_name AS 'Nombre del servicio',services.ser_date AS 'Fecha',
         services.ser_start AS 'Hora inicio', services.ser_end AS 'Hora fin', services.ser_quotas AS 'Cupos Totales',
-        service_types.ser_typ_name AS 'Tipo Servicio', profesionals.prof_name AS 'Profesional',
+        service_types.ser_typ_name AS 'Tipo Servicio', persons.per_name AS 'Profesional',
         services.ser_status AS 'Estado' FROM services INNER JOIN service_types ON services.ser_typ_id = service_types.ser_typ_id
-        INNER JOIN profesionals ON services.prof_id = profesionals.prof_id
+        INNER JOIN users ON services.prof_id = users.use_id
+        INNER JOIN persons ON persons.use_id = users.use_id
         WHERE services.ser_date >= '$date' AND services.ser_status = 1");
 
 
@@ -620,9 +628,10 @@ class Service extends Model
     {
         return DB::select("SELECT services.ser_id AS 'No. Servicio', services.ser_name AS 'Nombre del servicio', services.ser_date AS 'Fecha',
         services.ser_start AS 'Hora inicio', services.ser_end AS 'Hora fin', services.ser_quotas AS Cupos,
-        service_types.ser_typ_name AS 'Tipo Servicio', profesionals.prof_name AS 'Profesional',
+        service_types.ser_typ_name AS 'Tipo Servicio', persons.per_name AS 'Profesional',
          services.ser_status AS 'Estado' FROM services INNER JOIN service_types ON services.ser_typ_id = service_types.ser_typ_id
-        INNER JOIN profesionals ON services.prof_id = profesionals.prof_id
+        INNER JOIN users ON services.prof_id = users.use_id
+        INNER JOIN persons ON persons.use_id = users.use_id
         WHERE services.ser_date BETWEEN '$startDate' AND '$endDate'
         ORDER BY services.ser_date DESC");
     }
