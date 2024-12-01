@@ -146,4 +146,80 @@ class SpaceController extends Controller
             ]);
         }
     }
+
+    public function uploadFile(Request $request)
+    {
+        //debe buscar en persons por per_document = documento del archivo. per_id agregar al request y depues llamar al store dentro del foreach y enviar el request
+        $count = 0;
+        $responses[] = [];
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+
+            $file->storeAs('csv', $file->getClientOriginalName());
+
+            $csvData = array_map('str_getcsv', file($file->path()));
+
+            foreach ($csvData as $index => $row) {
+                if ($index == 0 && !is_numeric($row[0])) {
+                    continue;
+                }
+
+                $document = trim($row[0]);
+
+                // Verificar si el documento es un número válido
+                if (preg_match('/[!@#$%^&*(),.?":{}|<>]/', $row[0])) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => "El archivo tiene datos invalidos."
+                     ], 200);
+                }
+
+                $person = db::table('persons')->where('per_document', $row)->first();
+                if($person == null){
+                    $responses[] = [
+                        "Datos invalidos: ".$row[0]
+                    ];
+                    continue;
+
+                }
+
+
+                // $assistance = new Assistance();
+                // $assistance->ass_date = date('Y-m-d');
+                // $assistance->ass_status = 1;
+                // $assistance->stu_id = intval($row[0]);
+                // $assistance->bie_act_id = $request->bie_act_id;
+                // $assistance->ass_reg_status = 1;
+                // $assistance->save();
+
+                $request->merge(['use_id' => $person->use_id]);
+                $assistance = SpaceController::store($request);
+                $data = json_decode($assistance->getContent(), true);
+                $status = $data;
+                if($status["status"] == false){
+                    $responses[] = [
+                     $data["message"].'. Id: '.$person->per_document
+                    ];
+                }else{
+                    $count = $count + 1;
+                };
+
+            }
+            $responses[0] = [
+                "status" => true,
+                "message" => "The file has been uploaded successfully with ".$count." new registers"
+            ];
+            return response()->json([
+               'status' => true,
+               'message' => $responses
+            ], 200);
+
+
+
+
+        }else{
+            return response()->json(['error' => 'No CSV file found in request'], 400);
+        }
+
+    }
 }
