@@ -279,4 +279,116 @@ class ReservationController extends Controller
             ], 200);
         }
     }
+
+    public function uploadFile($proj_id, $use_id, Request $request)
+    {
+        $count = 0;
+        $responses = [];
+
+        // Verificar si hay archivo en la solicitud
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            // Guardar el archivo
+            $file->storeAs('csv', $file->getClientOriginalName());
+            // Leer el archivo CSV
+            $csvData = array_map('str_getcsv', file($file->path()));
+
+            // Procesar cada fila del CSV
+            foreach ($csvData as $index => $row) {
+                // Saltar la cabecera
+                if ($index == 0) {
+                    continue;
+                }
+
+                if (!is_array($row) || count($row) < 6) {
+                    $responses[] = [
+                        "error" => "Fila inválida: ".$index.". Faltan columnas o datos no válidos."
+                    ];
+                    continue;
+                }
+
+                // Extraer y validar datos del CSV
+                $use_mail = trim($row[0]);
+                $res_date = trim($row[1]);
+                $res_start = trim($row[2]);
+                $res_end = trim($row[3]);
+                $res_status = strtolower(trim($row[4])) === 'activo' ? 1 : 0;
+                $spa_name = trim($row[5]);
+
+                // Verificar si faltan datos
+                if (!$use_mail || !$res_date || !$res_start || !$res_end || !$spa_name) {
+                    $responses[] = [
+                        "error" => "Datos faltantes en la fila: ".$index
+                    ];
+                    continue;
+                }
+
+                // Buscar el usuario por correo
+                $user = DB::table('users')->where('use_mail', $use_mail)->first();
+                if (!$user) {
+                    $responses[] = [
+                        "error" => "Correo no encontrado: ".$use_mail
+                    ];
+                    continue;
+                }
+
+                // Buscar el espacio por nombre
+                $space = DB::table('spaces')->where('spa_name', $spa_name)->first();
+                if (!$space) {
+                    $responses[] = [
+                        "error" => "Espacio no encontrado: ".$spa_name
+                    ];
+                    continue;
+                }
+
+                // Preparar datos para la reserva
+                $request->merge([
+                    'res_date' => $res_date,
+                    'res_start' => $res_start,
+                    'res_end' => $res_end,
+                    'res_status' => $res_status,
+                    'spa_id' => $space->spa_id,
+                    'use_id' => $user->use_id
+                ]);
+
+
+                if ($request->has('file')) {
+                    $request->offsetUnset('file');
+                }
+
+
+                try {
+                    $assistance = ReservationController::store($proj_id, $use_id, $request);
+                    $data = json_decode($assistance->getContent(), true);
+
+                    if ($data["status"] === false) {
+                        $responses[] = [
+                            "error" => $data["message"].'. Correo: '.$use_mail
+                        ];
+                    } else {
+                        $count++;
+                    }
+                } catch (\Exception $e) {
+                    $responses[] = [
+                        "error" => "Error al procesar la fila: ".$index.". Detalles: ".$e->getMessage()
+                    ];
+                }
+            }
+
+            // Resumen del procesamiento
+            $responses[] = [
+                "status" => true,
+                "message" => "Archivo procesado con éxito. Total registros creados: ".$count
+            ];
+
+            return response()->json([
+                'status' => true,
+                'message' => $responses
+            ], 200);
+        } else {
+            return response()->json(['error' => 'No se encontró un archivo CSV en la solicitud.'], 400);
+        }
+    }
+
+
 }
