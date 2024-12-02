@@ -42,7 +42,7 @@ class ServicesController extends Controller
             'ser_end' => ['required', 'regex:/^([0-1][0-9]|2[0-3])(:)([0-5][0-9])$/'],
             'ser_quotas' => ['required', 'regex:/^[1-9][0-9]?$|^100$/'],
             'ser_typ_id' => 'required|integer',
-            'prof_id' => 'required',
+            'use_id' => 'required',
 
 
         ];
@@ -58,7 +58,7 @@ class ServicesController extends Controller
             'ser_end.regex' => 'El formato de la hora final del servicio no es valido.',
             'ser_typ_id.required' => 'El tipo de servicio es requerido.',
             'ser_typ_id.integer' => 'El tipo de servicio no es valido.',
-            'prof_id.required' => 'El profesional del servicio es requerido.',
+            'use_id.required' => 'El profesional del servicio es requerido.',
 
         ];
 
@@ -108,7 +108,7 @@ class ServicesController extends Controller
             'ser_end' => ['required', 'regex:/^([0-1][0-9]|2[0-3])(:)([0-5][0-9])$/'],
             'ser_quotas' => ['required', 'regex:/^[1-9][0-9]?$|^100$/'],
             'ser_typ_id' => 'required|integer',
-            'prof_id' => 'required|integer',
+            'use_id' => 'required|integer',
 
         ];
 
@@ -124,7 +124,7 @@ class ServicesController extends Controller
             'ser_end.regex' => 'El formato de la hora final de la reserva no es valido.',
             'ser_typ_id.required' => 'El tipo de reserva es requerido.',
             'ser_typ_id.integer' => 'El tipo de reserva no es valido.',
-            'prof_id.required' => 'El profesional a reservar es requerido.',
+            'use_id.required' => 'El profesional a reservar es requerido.',
 
 
         ];
