@@ -38,6 +38,7 @@ Route::get('users'.URL, [ReservationController::class, "users"])->name('users');
 Route::get('calendar'.URL, [ReservationController::class, "calendar"])->name('calendar');
 
 Route::Resource('spaces'.URL, SpaceController::class)->names('spaces')->parameter('','spaces');
+Route::post('spacesCVS'.URL, [ReservationController::class, "uploadFile"])->name('upload.reservations');
 
 Route::Resource('services'.URL, ServicesController::class)->names('services')->parameter('','services');
 // Funciones adicionales ServiceController

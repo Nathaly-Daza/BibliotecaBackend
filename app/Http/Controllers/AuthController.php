@@ -13,20 +13,23 @@ use Illuminate\Http\Request;
 class AuthController extends Controller
 {
     public function login(Request $request){
-        $response = Http::post('http://127.0.0.1:8088/api/login/7', [
+        $response = Http::post('http://127.0.0.1:8088/api/login/1', [
             "use_mail" => $request->use_mail,
             "use_password" => $request->use_password
         ]);
+
 
         // Check if the HTTP request was successful
         if ($response->successful()) {
             // Get the token from the JSON response if present
             $responseData = $response->json();
             $token = isset($responseData['token']) ? $responseData['token'] : null;
+           // return $request->use_mail;
             // Check if a token was retrieved before storing it
             if ($token !== null) {
 
                 $user=DB::table('users')->where("use_mail",'=',$request->use_mail)->first();
+
                 $user = User::find($user->use_id);
                 Auth::login($user);
                 // Start the session and store the token

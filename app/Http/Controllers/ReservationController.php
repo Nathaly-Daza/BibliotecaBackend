@@ -238,10 +238,10 @@ class ReservationController extends Controller
     }
 
     // Función que trae las reservaciones activas de los usuarios
-    public function users(Request $request)
+    /*public function usersProfesionals(Request $request)
     {
         if ($request->acc_administrator == 1) {
-            $users = Reservation::Users();
+            $users = Reservation::Users()->where();
             if ($users != null) {
                 return response()->json([
                     'status' => True,
@@ -259,7 +259,7 @@ class ReservationController extends Controller
                 'message' => 'Acceso denegado'
             ], 400);
         }
-    }
+    }*/
 
     // Busca las reservas existentes en la base de datos entre dos fechas
     public function betweenDates($proj_id, $use_id, $startDate, $endDate)
