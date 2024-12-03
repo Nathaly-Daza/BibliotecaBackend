@@ -22,7 +22,9 @@ class Reservation extends Model
         'res_end',
         'res_status',
         'spa_id',
-        'use_id'
+        'use_id',
+  /*       'recurrence_type', 
+        'recurrence_end_date', */
     ];
 
     public $timestamps = false;
@@ -69,6 +71,43 @@ class Reservation extends Model
                 'message' => "El espacio no está disponible."
             ], 400);
         }
+/*         $request->validate([
+            'res_date' => 'required|date',
+            'res_start' => 'required|date_format:H:i',
+            'res_end' => 'required|date_format:H:i|after:res_start',
+            'recurrence_type' => 'nullable|in:weekly,monthly',
+            'recurrence_end_date' => 'nullable|date|after:res_date',
+        ]); */
+/*         if (!empty($request->recurrence_type) && !empty($request->recurrence_end_date)) {
+            $currentDate = Carbon::create($request->res_date);
+            $endDate = Carbon::create($request->recurrence_end_date);
+        
+            while ($currentDate <= $endDate) {
+                $request->merge(['res_date' => $currentDate->format('Y-m-d')]);
+        
+                // Validar cada reserva con la lógica existente
+                $validationResponse = self::validateReservation($request, $proj_id, $use_id);
+                if ($validationResponse !== true) {
+                    return $validationResponse; // Si falla, retorna el error
+                }
+        
+                // Crear reserva
+                self::createReservation($request, $proj_id, $use_id);
+        
+                // Avanzar la fecha según el tipo de recurrencia
+                if ($request->recurrence_type == "weekly") {
+                    $currentDate->addWeek();
+                } elseif ($request->recurrence_type == "monthly") {
+                    $currentDate->addMonth();
+                }
+            }
+        
+            return response()->json([
+                'status' => true,
+                'message' => 'Reservas recurrentes creadas exitosamente.',
+            ], 200);
+        } */
+        
         // Convertimos los valores de hora que nos pasa el usuario a datos tipo Carbon
         $newResStart = carbon::parse($request->res_start);
         $newResEnd = carbon::parse($request->res_end);
@@ -583,4 +622,10 @@ class Reservation extends Model
             ->whereBetween('res.res_date', [$startDate, $endDate])
             ->OrderBy("res.res_date", 'DESC')->get();
     }
+//     private static function validateReservation($request, $proj_id, $use_id)
+// {
+//     // Lógica existente de validación
+//     // Devuelve `true` si es válida o un JSON de error si falla
+// }
+
 }
