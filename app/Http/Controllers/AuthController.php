@@ -13,6 +13,12 @@ use Illuminate\Http\Request;
 class AuthController extends Controller
 {
     public function login(Request $request){
+
+
+        $access= User::UserAcces($request->use_mail);
+        return $access;
+
+
         $response = Http::post('http://127.0.0.1:8088/api/login/1', [
             "use_mail" => $request->use_mail,
             "use_password" => $request->use_password
@@ -45,6 +51,7 @@ class AuthController extends Controller
                         "token" => $token,
                         "use_id" => $user->use_id,
                         "token_id" => $responseData['token_id'],
+                        "proj_id" => $responseData['projec_id'],
                         "acc_administrator" => $responseData['acc_administrator'],
                         'per_document' => $responseData['per_document']  ]
                 ],200);

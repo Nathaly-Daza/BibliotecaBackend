@@ -24,4 +24,14 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    public static function UserAcces($use_mail){
+        $access = User::select('users.*', 'access.proj_id')
+                    ->join('access', 'users.use_id', '=', 'access.use_id')
+                    ->where('use_mail', '=', $use_mail)->get();
+
+
+
+    return $access;
+    }
+
 }
