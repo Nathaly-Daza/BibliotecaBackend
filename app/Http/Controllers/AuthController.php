@@ -13,20 +13,10 @@ use Illuminate\Http\Request;
 class AuthController extends Controller
 {
     public function login(Request $request){
-        $response = Http::post('http://127.0.0.1:8088/api/login/1', [
+        $response = Http::post('http://127.0.0.1:8088/api/login/7', [
             "use_mail" => $request->use_mail,
             "use_password" => $request->use_password
         ]);
-        // $user=DB::table('users')->where("use_mail",'=',$request->use_mail)->first();
-        // // if($user == null){
-        // //     return response()->json([
-        // //         'status' => false,
-        // //         'message' => "El usuario no existe."
-        // //     ],400);
-        // // }
-        // $user = User::find($user->use_id);
-
-        // Auth::login($user);
 
         // Check if the HTTP request was successful
         if ($response->successful()) {
@@ -51,6 +41,7 @@ class AuthController extends Controller
                         // "message" => $responseData['message'],
                         "token" => $token,
                         "use_id" => $user->use_id,
+                        "token_id" => $responseData['token_id'],
                         "acc_administrator" => $responseData['acc_administrator'],
                         'per_document' => $responseData['per_document']  ]
                 ],200);
@@ -70,13 +61,16 @@ class AuthController extends Controller
         }
     }
 
-    public function logout(Request $id) {
-        session_start();
-        $tokens = DB::table('personal_access_tokens')->where('tokenable_id', '=', $id->use_id)->delete();
-        session_destroy();
+    // Método para cerrar sesión
+    public function logout(Request $request)
+    {
+        $id = $request->input('use_id');
+        $token_id = $request->input('token_id');
+        // Eliminar todos los tokens de acceso del usuario
+        $tokens = DB::table('personal_access_tokens')->where('tokenable_id', '=', $id)->where('id', '=', $token_id)->delete();
         return response()->json([
-            'status'=> true,
-            'message'=> "logout success."
-        ],200);
+            'status' => true,
+            'message' => "logout success."
+        ]);
     }
 }
