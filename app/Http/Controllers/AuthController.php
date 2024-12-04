@@ -16,12 +16,43 @@ class AuthController extends Controller
 
 
         $access= User::UserAcces($request->use_mail);
-        return $access;
 
 
         $response = Http::post('http://127.0.0.1:8088/api/login/1', [
             "use_mail" => $request->use_mail,
             "use_password" => $request->use_password
+        ]);
+
+        // Buscar el usuario por correo electrónico
+        $user = DB::table('users')->where('use_mail', '=', $request->use_mail)->first();
+
+        // Obtener los IDs de proyectos a los que tiene acceso el usuario
+        $projectIds = DB::table('access')
+            ->join('users', 'access.use_id', '=', 'users.use_id')
+            ->where('users.use_mail', $request->use_mail)
+            ->pluck('proj_id')
+            ->toArray(); // Convertimos la colección en un arreglo plano
+
+        // Validar si el usuario tiene acceso a los proyectos 1 o 7 con acc_status = 1
+        foreach ($projectIds as $projectId) {
+            // Consultar el estado de acceso (acc_status) para este proyecto
+            $accessStatus = DB::table('access')
+                ->where('proj_id', $projectId)
+                ->value('acc_status'); // Retorna directamente el valor de acc_status o null
+
+            // Validar si el proyecto tiene acc_status = 1 y el ID es 1 o 7
+            if (($projectId == 1 || $projectId == 7) && $accessStatus == 1) {
+                return response()->json([
+                    'message' => 'Acceso otorgado',
+                    'access' => true,
+                ]);
+            }
+        }
+
+        // Si no se cumple ninguna de las condiciones, denegar acceso
+        return response()->json([
+            'message' => 'Acceso denegado',
+            'access' => false,
         ]);
 
 
@@ -34,7 +65,7 @@ class AuthController extends Controller
             // Check if a token was retrieved before storing it
             if ($token !== null) {
 
-                $user=DB::table('users')->where("use_mail",'=',$request->use_mail)->first();
+                
 
                 $user = User::find($user->use_id);
                 Auth::login($user);
@@ -43,6 +74,8 @@ class AuthController extends Controller
                 // $_SESSION['api_token'] = $token;
                 // $_SESSION['use_id'] = $user->use_id;
                 // $_SESSION['acc_administrator'] = $responseData['acc_administrator'];
+
+                
 
                 return response()->json([
                     'status' => true,
