@@ -579,12 +579,12 @@ class Service extends Model
             'services.ser_end AS Hora fin',
             'services.ser_quotas AS Cupos',
             'service_types.ser_typ_name AS Tipo Servicio',
-            'persons.per_name AS Profesional',
+            DB::raw("CONCAT(persons.per_name, ' ', persons.per_lastname) AS Profesional"),
 
             'services.ser_status AS Estado'
         )->join('service_types', 'services.ser_typ_id', '=', 'service_types.ser_typ_id')
             ->join('users', 'users.use_id', '=', 'services.use_id')
-            ->join('persons', 'persons.use_id', '=', 'users.per_id')
+            ->join('persons', 'persons.use_id', '=', 'users.use_id')
             ->where("services." . $column, 'like', '%' . $data . '%')->OrderBy("services." . $column, 'DESC')->get();
         return $reservation;
     }
@@ -600,12 +600,11 @@ class Service extends Model
             'services.ser_end AS Hora fin',
             'services.ser_quotas AS Cupos',
             'service_types.ser_typ_name AS Tipo Servicio',
-            'persons.per_name AS Profesional',
-
+            DB::raw("CONCAT(persons.per_name, ' ', persons.per_lastname) AS Profesional"),
             'services.ser_status AS Estado'
         )->join('service_types', 'services.ser_typ_id', '=', 'service_types.ser_typ_id')
         ->join('users', 'users.use_id', '=', 'services.use_id')
-        ->join('persons', 'persons.use_id', '=', 'users.per_id')
+        ->join('persons', 'persons.use_id', '=', 'users.use_id')
             ->where("ser_date", ">=", $date)->where("ser_status", "=", 1)->get();
 
 
@@ -616,7 +615,7 @@ class Service extends Model
         $date = date('Y-m-d');
         $reservation = DB::select("SELECT services.ser_id AS 'No. Servicio', services.ser_name AS 'Nombre del servicio',services.ser_date AS 'Fecha',
         services.ser_start AS 'Hora inicio', services.ser_end AS 'Hora fin', services.ser_quotas AS 'Cupos Totales',
-        service_types.ser_typ_name AS 'Tipo Servicio', persons.per_name AS 'Profesional',
+        service_types.ser_typ_name AS 'Tipo Servicio',CONCAT(persons.per_name, ' ', persons.per_lastname) AS 'Profesional',
         services.ser_status AS 'Estado' FROM services INNER JOIN service_types ON services.ser_typ_id = service_types.ser_typ_id
         INNER JOIN users ON services.use_id = users.use_id
         INNER JOIN persons ON persons.use_id = users.use_id
@@ -643,7 +642,7 @@ class Service extends Model
     {
         return DB::select("SELECT services.ser_id AS 'No. Servicio', services.ser_name AS 'Nombre del servicio', services.ser_date AS 'Fecha',
         services.ser_start AS 'Hora inicio', services.ser_end AS 'Hora fin', services.ser_quotas AS Cupos,
-        service_types.ser_typ_name AS 'Tipo Servicio', persons.per_name AS 'Profesional',
+        service_types.ser_typ_name AS 'Tipo Servicio', CONCAT(persons.per_name, ' ', persons.per_lastname) AS 'Profesional',
          services.ser_status AS 'Estado' FROM services INNER JOIN service_types ON services.ser_typ_id = service_types.ser_typ_id
         INNER JOIN users ON services.use_id = users.use_id
         INNER JOIN persons ON persons.use_id = users.use_id
@@ -673,14 +672,7 @@ class Service extends Model
 
     public static function incriptionsPerService($id)
     {
-        // $service = DB::table('services AS ser')
-        //     ->join('profesionals AS pro', 'pro.use_id', '=', 'ser.use_id')
-        //     ->select('ser.ser_id', 'ser.ser_name', 'ser.ser_date', 'ser.ser_start', 'ser.ser_end', 'ser.ser_status', 'ser.ser_quotas', 'pro.prof_name')
-        //     ->where('ser.ser_id', '=', $id)
-        //     ->first();
-        // if ($service == null){
-        //     return $service;
-        // }else{
+        
         $users = DB::table('biblioteca_inscriptions as bi')
             ->join('services as se', 'bi.ser_id', '=', 'se.ser_id')
             ->join('users as u', 'bi.use_id', '=', 'u.use_id')
