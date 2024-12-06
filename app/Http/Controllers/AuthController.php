@@ -34,7 +34,7 @@ class AuthController extends Controller
             ->toArray(); // Convertimos la colección en un arreglo plano
 
         // Validar si el usuario tiene acceso a los proyectos 1 o 7 con acc_status = 1
-        foreach ($projectIds as $projectId) {
+        /*foreach ($projectIds as $projectId) {
             // Consultar el estado de acceso (acc_status) para este proyecto
             $accessStatus = DB::table('access')
                 ->where('proj_id', $projectId)
@@ -47,13 +47,13 @@ class AuthController extends Controller
                     'access' => true,
                 ]);
             }
-        }
+        }*/
 
         // Si no se cumple ninguna de las condiciones, denegar acceso
-        return response()->json([
+        /*return response()->json([
             'message' => 'Acceso denegado',
             'access' => false,
-        ]);
+        ]);*/
 
 
         // Check if the HTTP request was successful
@@ -65,7 +65,7 @@ class AuthController extends Controller
             // Check if a token was retrieved before storing it
             if ($token !== null) {
 
-                
+
 
                 $user = User::find($user->use_id);
                 Auth::login($user);
@@ -75,7 +75,7 @@ class AuthController extends Controller
                 // $_SESSION['use_id'] = $user->use_id;
                 // $_SESSION['acc_administrator'] = $responseData['acc_administrator'];
 
-                
+
 
                 return response()->json([
                     'status' => true,

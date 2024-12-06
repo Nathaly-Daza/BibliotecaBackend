@@ -33,14 +33,19 @@ class User extends Authenticatable
 
     return $access;
     }
-    // Método para obtener los proyectos 1 y 7 que los usuarios tienen acceso
-    public static function getUsersWithAccessToProjects()
+    
+    public static function getUsersWithAccessToProjectBiblioteca()
     {
-        return self::select('users.use_id', 'users.use_mail', 'users.use_status', 'access.proj_id', 'access.acc_status')
-            ->join('access', 'users.use_id', '=', 'access.use_id')
-            ->whereIn('access.proj_id', [1, 7]) // Proyectos específicos
-            ->where('access.acc_status', 1) // Validar que el acceso está activo
-            ->get();
+        return (
+            User::select('users.use_id', 'users.use_mail', 'users.use_status', 'persons.per_name', 'persons.per_lastname')
+                ->join('persons', 'users.use_id', '=', 'persons.use_id')
+                ->join('access', 'users.use_id', '=', 'access.use_id')
+                ->where('access.acc_status', 1)
+                ->where('access.proj_id', 1)
+                ->where('users.use_status', 1)
+                ->groupBy('users.use_id', 'users.use_mail', 'users.use_status', 'persons.per_name', 'persons.per_lastname')
+                ->get()
+        );
     }
 
 
