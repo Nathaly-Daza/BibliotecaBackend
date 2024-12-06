@@ -27,6 +27,25 @@ class SpaceController extends Controller
             }
     }
 
+    // funcion para ver los espacios asignados a cada proyecto
+    public function indexProject(Request $request, $use_id, $id)
+    {
+        
+        
+        $spaces = Space::where('proj_id', $id)->get();
+        if($spaces == null){
+            return response()->json([
+                'status' => False,
+                'message' => 'There is no spaces availables.'
+            ],400);
+        }else{
+            Controller::NewRegisterTrigger("Se realizó una busqueda de datos en la tabla spaces ",4,$proj_id,$use_id);
+            return response()->json([
+                'status'=>True,
+                'data'=>$spaces],200);
+        }
+    }
+
 
     public function store($proj_id, $use_id, Request $request )
     {

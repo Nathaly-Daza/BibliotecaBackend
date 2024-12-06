@@ -33,28 +33,6 @@ class AuthController extends Controller
             ->pluck('proj_id')
             ->toArray(); // Convertimos la colección en un arreglo plano
 
-        // Validar si el usuario tiene acceso a los proyectos 1 o 7 con acc_status = 1
-        /*foreach ($projectIds as $projectId) {
-            // Consultar el estado de acceso (acc_status) para este proyecto
-            $accessStatus = DB::table('access')
-                ->where('proj_id', $projectId)
-                ->value('acc_status'); // Retorna directamente el valor de acc_status o null
-
-            // Validar si el proyecto tiene acc_status = 1 y el ID es 1 o 7
-            if (($projectId == 1 || $projectId == 7) && $accessStatus == 1) {
-                return response()->json([
-                    'message' => 'Acceso otorgado',
-                    'access' => true,
-                ]);
-            }
-        }*/
-
-        // Si no se cumple ninguna de las condiciones, denegar acceso
-        /*return response()->json([
-            'message' => 'Acceso denegado',
-            'access' => false,
-        ]);*/
-
 
         // Check if the HTTP request was successful
         if ($response->successful()) {
@@ -84,7 +62,7 @@ class AuthController extends Controller
                         "token" => $token,
                         "use_id" => $user->use_id,
                         "token_id" => $responseData['token_id'],
-                        "proj_id" => $responseData['projec_id'],
+                        "proj_id" => $projectIds,
                         "acc_administrator" => $responseData['acc_administrator'],
                         'per_document' => $responseData['per_document']  ]
                 ],200);
