@@ -33,7 +33,7 @@ class User extends Authenticatable
 
     return $access;
     }
-    
+
     public static function getUsersWithAccessToProjectBiblioteca()
     {
         return (
@@ -48,10 +48,4 @@ class User extends Authenticatable
         );
     }
 
-
-   /* public function getUsersForProjects(): JsonResponse
-    {
-        $users = User::getUsersWithAccessToProjects();
-        return response()->json($users);
-    }*/
 }
