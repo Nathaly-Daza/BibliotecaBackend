@@ -28,10 +28,12 @@ class AuthController extends Controller
 
         // Obtener los IDs de proyectos a los que tiene acceso el usuario
         $projectIds = DB::table('access')
-            ->join('users', 'access.use_id', '=', 'users.use_id')
-            ->where('users.use_mail', $request->use_mail)
-            ->pluck('proj_id')
-            ->toArray(); // Convertimos la colección en un arreglo plano
+        ->join('users', 'access.use_id', '=', 'users.use_id')
+        ->where('users.use_mail', $request->use_mail)
+        ->whereIn('access.proj_id', [1, 7]) // Filtra solo acc_id 1 o 7
+        ->pluck('proj_id')
+        ->toArray(); // Convertimos la colección en un arreglo plano
+
 
 
         // Check if the HTTP request was successful
