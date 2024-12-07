@@ -16,13 +16,6 @@ class AuthController extends Controller
 
 
         $access= User::UserAcces($request->use_mail);
-
-
-        $response = Http::post('http://127.0.0.1:8088/api/login/1', [
-            "use_mail" => $request->use_mail,
-            "use_password" => $request->use_password
-        ]);
-
         // Buscar el usuario por correo electrónico
         $user = DB::table('users')->where('use_mail', '=', $request->use_mail)->first();
 
@@ -34,6 +27,28 @@ class AuthController extends Controller
         ->pluck('proj_id')
         ->toArray(); // Convertimos la colección en un arreglo plano
 
+        // Definir el endpoint de la API dependiendo de los proyectos a los que tiene acceso el usuario
+        if (in_array(1, $projectIds)) {
+            $endpoint = 'http://127.0.0.1:8088/api/login/1';
+        } elseif (in_array(7, $projectIds)) {
+            $endpoint = 'http://127.0.0.1:8088/api/login/7';
+        } else{
+            // Manejar el caso en que el usuario no tenga acceso a los proyectos 1 o 7
+            return response()->json([
+                'status' => false,
+                'message' => 'El usuario no tiene acceso a los proyectos requeridos.'
+            ], 403);
+        }
+
+        $response = Http::post($endpoint, [
+            "use_mail" => $request->use_mail,
+            "use_password" => $request->use_password
+        ]);
+
+       
+
+        
+
 
 
         // Check if the HTTP request was successful
@@ -41,19 +56,13 @@ class AuthController extends Controller
             // Get the token from the JSON response if present
             $responseData = $response->json();
             $token = isset($responseData['token']) ? $responseData['token'] : null;
-           // return $request->use_mail;
-            // Check if a token was retrieved before storing it
+            
             if ($token !== null) {
 
 
 
                 $user = User::find($user->use_id);
                 Auth::login($user);
-                // Start the session and store the token
-                // session_start();
-                // $_SESSION['api_token'] = $token;
-                // $_SESSION['use_id'] = $user->use_id;
-                // $_SESSION['acc_administrator'] = $responseData['acc_administrator'];
 
 
 
@@ -66,7 +75,7 @@ class AuthController extends Controller
                         "token_id" => $responseData['token_id'],
                         "proj_id" => $projectIds,
                         "acc_administrator" => $responseData['acc_administrator'],
-                        'per_document' => $responseData['per_document']  ]
+                        'per_document' => $responseData['per_document'] ]
                 ],200);
             } else {
                 // Handle the case where 'token' is not present in the response
