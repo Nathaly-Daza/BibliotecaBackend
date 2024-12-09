@@ -23,7 +23,7 @@ class Reservation extends Model
         'res_status',
         'spa_id',
         'use_id',
-      /*  'recurrence_type',
+        /*  'recurrence_type',
         'recurrence_end_date',*/
     ];
 
@@ -38,7 +38,6 @@ class Reservation extends Model
             ->orderBy('res.res_id', 'DESC')->get();
         return $reservations;
     }
-
     public static function Store($proj_id, $use_id, $request)
     {
 
@@ -174,7 +173,8 @@ class Reservation extends Model
                             foreach ($reserUsers as $reserUsersKey) {
                                 $validatedResStart = carbon::parse($reserUsersKey->res_start);
                                 $validatedResEnd = carbon::parse($reserUsersKey->res_end);
-                                if ($newResStart->lt($validatedResEnd) && $newResEnd->gt($validatedResStart) && $request->use_id == $reserUsersKey->use_id && $reserUsersKey->res_status == 1
+                                if (
+                                    $newResStart->lt($validatedResEnd) && $newResEnd->gt($validatedResStart) && $request->use_id == $reserUsersKey->use_id && $reserUsersKey->res_status == 1
                                 ) {
                                     return response()->json([
                                         'status' => False,
@@ -387,13 +387,12 @@ class Reservation extends Model
                                         'status' => False,
                                         'message' => 'Ya existe una reservación en este momento.'
                                     ], 400);
-                                }elseif($newResStart->lt($validatedResEnd) && $newResEnd->gt($validatedResStart) && $request->spa_id != $reserUsersKey->spa_id && $reserUsersKey->res_status == 1 && $request->acc_administrator == 0){
+                                } elseif ($newResStart->lt($validatedResEnd) && $newResEnd->gt($validatedResStart) && $request->spa_id != $reserUsersKey->spa_id && $reserUsersKey->res_status == 1 && $request->acc_administrator == 0) {
                                     return response()->json([
                                         'status' => False,
                                         'message' => 'Ya tiene una reserva en este momento'
                                     ], 400);
                                 }
-
                             }
 
                             // Si el foreach no para en ningún if al salir se actualizará la reserva.
@@ -425,10 +424,10 @@ class Reservation extends Model
                                 }
                             }
 
-                            foreach($reserUsers as $reserUsersKey){
+                            foreach ($reserUsers as $reserUsersKey) {
                                 $validatedResStart = carbon::parse($reserUsersKey->res_start);
                                 $validatedResEnd = carbon::parse($reserUsersKey->res_end);
-                                if($newResStart->lt($validatedResEnd) && $newResEnd->gt($validatedResStart) && $request->spa_id != $reserUsersKey->spa_id && $reserUsersKey->res_status == 1 && $request->acc_administrator == 0){
+                                if ($newResStart->lt($validatedResEnd) && $newResEnd->gt($validatedResStart) && $request->spa_id != $reserUsersKey->spa_id && $reserUsersKey->res_status == 1 && $request->acc_administrator == 0) {
                                     return response()->json([
                                         'status' => False,
                                         'message' => 'Ya tiene una reserva en este momento'
@@ -473,7 +472,7 @@ class Reservation extends Model
                 'message' => $message
             ], 400);
         }
-          /*       $request->validate([
+        /*       $request->validate([
             'res_date' => 'required|date',
             'res_start' => 'required|date_format:H:i',
             'res_end' => 'required|date_format:H:i|after:res_start',
@@ -510,9 +509,7 @@ class Reservation extends Model
             ], 200);
         } */
     }
-
-
-    public static function ReserFilters($column, $data)
+    public static function ReserFilters($column, $data, $proj_id)
     {
         $reservation = DB::table('reservations AS res')
             ->join('spaces AS sp', 'res.spa_id', '=', 'sp.spa_id')
@@ -524,13 +521,14 @@ class Reservation extends Model
                 'res.res_end AS Hora fin',
                 'sp.spa_name AS Espacio',
                 'us.use_mail AS Correo',
-                'res.res_status AS Estado'
+                'res.res_status AS Estado',
+                'sp.proj_id AS Proyecto'
             )
-            ->where("res." . $column, 'like', '%' . $data . '%')->OrderBy("res." . $column, 'DESC')->get();
+            ->where("res." . $column, 'like', '%' . $data . '%')->where('sp.proj_id', $proj_id)->OrderBy("res." . $column, 'DESC')->get();
         return $reservation;
     }
 
-    public static function ActiveReservUser($use_id, $request)
+    public static function ActiveReservUser($use_id, $proj_id, $request)
     {
         $date = date('Y-m-d');
         // Ternario
@@ -549,6 +547,7 @@ class Reservation extends Model
             )
             ->where("res_date", ">=", $date)
             ->where("res_status", "=", 1)
+            ->where('sp.proj_id', $proj_id)
             ->OrderBy("res.use_id", 'DESC')->get()
 
             : DB::table('reservations AS res')
@@ -566,10 +565,11 @@ class Reservation extends Model
             ->where("res.use_id", '=', $use_id)
             ->where("res_date", ">=", $date)
             ->where("res_status", "=", 1)
+            ->where('sp.proj_id', $proj_id)
             ->OrderBy("res.use_id", 'DESC')->get();
         return $reservation;
     }
-    public static function Calendar()
+    public static function Calendar($proj_id)
     {
         $date = date('Y-m-d');
         $reservation = DB::select("SELECT reservations.res_id AS 'No. Reserva', reservations.res_date AS 'Fecha',
@@ -577,7 +577,7 @@ class Reservation extends Model
         users.use_mail AS 'Correo', reservations.use_id AS 'Identificacion', reservations.res_status AS 'Estado' FROM reservations
         INNER JOIN spaces ON reservations.spa_id = spaces.spa_id
         INNER JOIN users ON reservations.use_id = users.use_id
-        WHERE reservations.res_date >= '$date' AND reservations.res_status = 1");
+        WHERE reservations.res_date >= '$date' AND reservations.res_status = 1 AND spaces.proj_id = $proj_id");
         return $reservation;
     }
 
@@ -591,20 +591,19 @@ class Reservation extends Model
 
         $Allusers = DB::select(
             "SELECT acc.use_id, acc.proj_id, us.use_mail , acc.acc_id  FROM users us
-            LEFT JOIN access acc ON us.use_id = acc.use_id "
+            LEFT JOIN access acc ON us.use_id = acc.use_id"
         );
-        foreach($users as $user){
+        foreach ($users as $user) {
             $user->acc_admin = 0;
-            foreach($Allusers as $fullUser){
-                if($fullUser->use_id == $user->use_id && $fullUser->proj_id == 1){
+            foreach ($Allusers as $fullUser) {
+                if ($fullUser->use_id == $user->use_id && $fullUser->proj_id == 1) {
                     $user->acc_admin = 1;
                 }
             }
-
         }
         return $users;
     }
-    public static function betweenDates($startDate, $endDate)
+    public static function betweenDates($proj_id, $startDate, $endDate)
     {
 
         return DB::table('reservations AS res')
@@ -620,12 +619,7 @@ class Reservation extends Model
                 'us.use_mail AS Correo'
             )
             ->whereBetween('res.res_date', [$startDate, $endDate])
+            ->where('sp.proj_id', $proj_id)
             ->OrderBy("res.res_date", 'DESC')->get();
     }
-//     private static function validateReservation($request, $proj_id, $use_id)
-// {
-//     // Lógica existente de validación
-//     // Devuelve `true` si es válida o un JSON de error si falla
-// }
-
 }

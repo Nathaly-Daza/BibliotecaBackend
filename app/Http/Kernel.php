@@ -65,5 +65,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'checkProjectAccess' => \App\Http\Middleware\CheckProjectAccess::class,
         'ensureProjectAccess' => \App\Http\Middleware\EnsureProjectAccess::class,
+        'check.token.expiry' => \App\Http\Middleware\CheckTokenExpiry::class,
     ];
 }

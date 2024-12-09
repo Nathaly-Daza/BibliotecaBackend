@@ -9,43 +9,26 @@ use Illuminate\Http\Request;
 
 class SpaceController extends Controller
 {
-
+    // 
     public function index($proj_id, $use_id)
     {
-            $spaces = Space::all();
-            if($spaces == null){
-                return response()->json([
-                'status' => False,
-                'message' => 'There is no spaces availables.'
-                ],400);
-            }else{
-                Controller::NewRegisterTrigger("Se realizó una busqueda de datos en la tabla spaces ",4,$proj_id,$use_id);
+        // Obtener los espacios agrupados por tipo de espacio
+        $spaces = Space::where('proj_id', $proj_id)
+        ->get();
 
-                return response()->json([
-                    'status'=>True,
-                    'data'=>$spaces],200);
-            }
-    }
-
-    // funcion para ver los espacios asignados a cada proyecto
-    public function indexProject(Request $request, $use_id, $id)
-    {
-        
-        
-        $spaces = Space::where('proj_id', $id)->get();
-        if($spaces == null){
-            return response()->json([
-                'status' => False,
-                'message' => 'There is no spaces availables.'
-            ],400);
-        }else{
-            Controller::NewRegisterTrigger("Se realizó una busqueda de datos en la tabla spaces ",4,$proj_id,$use_id);
-            return response()->json([
-                'status'=>True,
-                'data'=>$spaces],200);
+        if ($spaces->isEmpty()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'No hay espacios disponibles.'
+        ], 400);
+        } else {
+        Controller::NewRegisterTrigger("Se realizó una búsqueda de datos en la tabla spaces", 4, $proj_id, $use_id);
+        return response()->json([
+            'status' => true,
+            'data' => $spaces
+        ], 200);
         }
     }
-
 
     public function store($proj_id, $use_id, Request $request )
     {
@@ -68,6 +51,7 @@ class SpaceController extends Controller
                 $space = new Space($request->input());
                 $space->spa_name = $request->spa_name;
                 $space->spa_status = 1;
+                $space->proj_id = $proj_id;
                 $space ->save();
                 // Se guarda la novedad en la base de datos.
                 Controller::NewRegisterTrigger("Se realizó una inserción de un dato en la tabla spaces ",3,$proj_id,$use_id);
@@ -84,8 +68,6 @@ class SpaceController extends Controller
                 ],403);
         }
     }
-
-
 
     public function show($proj_id, $use_id, $id)
     {
@@ -108,7 +90,6 @@ class SpaceController extends Controller
 
     }
 
-
     public function update($proj_id, $use_id, Request $request, $id )
     {
         if ($request->acc_administrator == 1) {
@@ -127,6 +108,7 @@ class SpaceController extends Controller
                 // Se busca el dato en la base de datos.
                 $space = Space::find($id);
                 $space->spa_name = $request->spa_name;
+                $space->proj_id = $proj_id;
                 $space->save();
                 // Se guarda la novedad en la base de datos.
                 Controller::NewRegisterTrigger("Se realizó una actualización en la información del dato ".$request->spa_name." de la tabla spaces ",1,$proj_id,$use_id);
@@ -145,8 +127,6 @@ class SpaceController extends Controller
         }
 
     }
-
-
     // Función para cambiar el estado de un espacio por ID
     public function destroy( $proj_id, $use_id, $id, Request $request)
     {
@@ -166,7 +146,4 @@ class SpaceController extends Controller
             ]);
         }
     }
-
-
-
 }

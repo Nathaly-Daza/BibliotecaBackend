@@ -45,26 +45,18 @@ class AuthController extends Controller
             "use_password" => $request->use_password
         ]);
 
-       
-
-        
-
-
-
         // Check if the HTTP request was successful
         if ($response->successful()) {
             // Get the token from the JSON response if present
             $responseData = $response->json();
             $token = isset($responseData['token']) ? $responseData['token'] : null;
-            
+
             if ($token !== null) {
 
 
 
                 $user = User::find($user->use_id);
                 Auth::login($user);
-
-
 
                 return response()->json([
                     'status' => true,
@@ -78,19 +70,56 @@ class AuthController extends Controller
                         'per_document' => $responseData['per_document'] ]
                 ],200);
             } else {
-                // Handle the case where 'token' is not present in the response
                 return response()->json([
                     'status' => false,
                     'message' => $response->json()
                 ],401);
             }
         } else {
-            // Handle the case where the HTTP request was not successful
             return response()->json([
                 'status' => false,
                 'message' => $response->json()['message']
             ],400);
         }
+    }
+
+    public function refreshToken(Request $request)
+    {
+        $user = $request->user();
+
+        // Verificar si el token actual ha expirado
+        $existingToken = DB::table('personal_access_tokens')
+            ->where('tokenable_id', $user->id)
+            ->where('token', hash('sha256', $request->bearerToken()))
+            ->first();
+
+        if ($existingToken && Carbon::parse($existingToken->expires_at)->isPast()) {
+            // Eliminar el token expirado
+            DB::table('personal_access_tokens')->where('id', $existingToken->id)->delete();
+
+            // Crear un nuevo token con tiempo de expiración
+            $tokenResult = $user->createToken('API TOKEN');
+            $token = $tokenResult->plainTextToken;
+            $expiration = now()->addHour();  // Establecer expiración de 1 hora
+
+            // Guardar la expiración del token en la base de datos
+            DB::table('personal_access_tokens')
+                ->where('id', $tokenResult->accessToken->id)
+                ->update(['expires_at' => $expiration]);
+
+            // Devolver el nuevo token y su expiración en formato JSON
+            return response()->json([
+                'status' => true,
+                'message' => "Token refreshed successfully",
+                'token' => $token,
+                'token_expiration' => $expiration
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => "Token is still valid or not found"
+        ], 400);
     }
 
     // Método para cerrar sesión

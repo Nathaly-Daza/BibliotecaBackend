@@ -17,8 +17,11 @@ class ReservationController extends Controller
     public function index($proj_id, $use_id)
     {
 
-        // Selecciona todas las reservas
-        $reservations = Reservation::Select();
+        $reservations = DB::table('reservations')
+            ->join('spaces', 'reservations.spa_id', '=', 'spaces.spa_id')
+            ->where('spaces.proj_id', $proj_id)
+            ->select('reservations.*', 'spaces.spa_name')
+            ->get();
 
         // Si no hay reservas, devuelve un mensaje de error
         if ($reservations->isEmpty()) {
@@ -52,12 +55,12 @@ class ReservationController extends Controller
             'recurrenceType' => 'required_if:isRecurring,true|in:weekly,monthly',
             'recurrenceEndDate' => 'required_if:isRecurring,true|date|after_or_equal:res_date',
         ];
-    
+
         $messages = [
             'recurrenceType.required_if' => 'El tipo de recurrencia es requerido si es una reserva recurrente.',
             'recurrenceEndDate.required_if' => 'La fecha de fin de recurrencia es requerida.',
         ];
-    
+
         // Validación
         $validator = Validator::make($request->all(), $rules, $messages);
         if ($validator->fails()) {
@@ -66,24 +69,24 @@ class ReservationController extends Controller
                 'message' => $validator->errors()->all()
             ], 400);
         }
-    
+
         // Verificar si es una reserva recurrente
         $isRecurring = $request->input('isRecurring', false);
         $recurrenceType = $request->input('recurrenceType');
         $recurrenceEndDate = $request->input('recurrenceEndDate');
-    
+
         if ($isRecurring) {
             $currentDate = Carbon::create($request->res_date);
             $endDate = Carbon::create($recurrenceEndDate);
-    
+
             while ($currentDate <= $endDate) {
                 $existingReservation = Reservation::where('spa_id', $request->spa_id)
                     ->where('res_date', $currentDate->format('Y-m-d'))
                     ->where(function ($query) use ($request) {
                         $query->whereBetween('res_start', [$request->res_start, $request->res_end])
-                              ->orWhereBetween('res_end', [$request->res_start, $request->res_end]);
+                            ->orWhereBetween('res_end', [$request->res_start, $request->res_end]);
                     })->exists();
-    
+
                 if (!$existingReservation) {
                     Reservation::create([
                         'res_date' => $currentDate->format('Y-m-d'),
@@ -94,7 +97,7 @@ class ReservationController extends Controller
                         'res_status' => 1,
                     ]);
                 }
-    
+
                 // Incrementar la fecha según el tipo de recurrencia
                 if ($recurrenceType === 'weekly') {
                     $currentDate->addWeek();
@@ -102,10 +105,10 @@ class ReservationController extends Controller
                     $currentDate->addMonth();
                 }
             }
-    
+
             return response()->json(['message' => 'Reservas recurrentes creadas exitosamente'], 201);
         }
-    
+
         // Si no es recurrente, crear una sola reserva
         Reservation::create($request->all());
         return response()->json(['message' => 'Reserva creada exitosamente'], 201);
@@ -203,7 +206,7 @@ class ReservationController extends Controller
     {
 
         // Llama al método ReserFilters del modelo Reservation para filtrar las reservas
-        $reservation = Reservation::ReserFilters($column, $data);
+        $reservation = Reservation::ReserFilters($column, $data, $proj_id);
 
         // Si no hay reservas que coincidan con el filtro, devuelve un mensaje de error
         if ($reservation == null) {
@@ -229,7 +232,7 @@ class ReservationController extends Controller
     {
 
         // Llama al método ActiveReservUser del modelo Reservation para obtener las reservas activas del usuario
-        $reservation = Reservation::ActiveReservUser($use_id, $request);
+        $reservation = Reservation::ActiveReservUser($use_id, $proj_id, $request);
 
         // Si no hay reservas activas para el usuario, devuelve un mensaje de error
         if ($reservation == null) {
@@ -252,10 +255,10 @@ class ReservationController extends Controller
     {
 
         // Llama al método ActiveReservUser del modelo Reservation para obtener las reservas activas del usuario
-        $reservation = Reservation::Calendar();
+        $reservation = Reservation::Calendar($proj_id);
         if ($reservation == null) {
 
-        // Si no hay reservas activas, devuelve un mensaje de error
+            // Si no hay reservas activas, devuelve un mensaje de error
             return response()->json([
                 'status' => False,
                 'message' => 'No se han hecho reservaciones.'
@@ -299,7 +302,7 @@ class ReservationController extends Controller
     public function betweenDates($proj_id, $use_id, $startDate, $endDate)
     {
         // en el modelo Reservation se ejecutará la función betweenDates y se le pasaran la fecha de inicio y de fin
-        $reservations = Reservation::betweenDates($startDate, $endDate);
+        $reservations = Reservation::betweenDates($proj_id, $startDate, $endDate);
         if ($reservations == null) {
             return response()->json([
                 'status' => False,
@@ -336,7 +339,7 @@ class ReservationController extends Controller
 
                 if (!is_array($row) || count($row) < 6) {
                     $responses[] = [
-                        "error" => "Fila inválida: ".$index.". Faltan columnas o datos no válidos."
+                        "error" => "Fila inválida: " . $index . ". Faltan columnas o datos no válidos."
                     ];
                     continue;
                 }
@@ -352,7 +355,7 @@ class ReservationController extends Controller
                 // Verificar si faltan datos
                 if (!$use_mail || !$res_date || !$res_start || !$res_end || !$spa_name) {
                     $responses[] = [
-                        "error" => "Datos faltantes en la fila: ".$index
+                        "error" => "Datos faltantes en la fila: " . $index
                     ];
                     continue;
                 }
@@ -361,7 +364,7 @@ class ReservationController extends Controller
                 $user = DB::table('users')->where('use_mail', $use_mail)->first();
                 if (!$user) {
                     $responses[] = [
-                        "error" => "Correo no encontrado: ".$use_mail
+                        "error" => "Correo no encontrado: " . $use_mail
                     ];
                     continue;
                 }
@@ -370,7 +373,7 @@ class ReservationController extends Controller
                 $space = DB::table('spaces')->where('spa_name', $spa_name)->first();
                 if (!$space) {
                     $responses[] = [
-                        "error" => "Espacio no encontrado: ".$spa_name
+                        "error" => "Espacio no encontrado: " . $spa_name
                     ];
                     continue;
                 }
@@ -397,14 +400,14 @@ class ReservationController extends Controller
 
                     if ($data["status"] === false) {
                         $responses[] = [
-                            "error" => $data["message"].'. Correo: '.$use_mail
+                            "error" => $data["message"] . '. Correo: ' . $use_mail
                         ];
                     } else {
                         $count++;
                     }
                 } catch (\Exception $e) {
                     $responses[] = [
-                        "error" => "Error al procesar la fila: ".$index.". Detalles: ".$e->getMessage()
+                        "error" => "Error al procesar la fila: " . $index . ". Detalles: " . $e->getMessage()
                     ];
                 }
             }
@@ -412,7 +415,7 @@ class ReservationController extends Controller
             // Resumen del procesamiento
             $responses[] = [
                 "status" => true,
-                "message" => "Archivo procesado con éxito. Total registros creados: ".$count
+                "message" => "Archivo procesado con éxito. Total registros creados: " . $count
             ];
 
             return response()->json([
@@ -423,6 +426,4 @@ class ReservationController extends Controller
             return response()->json(['error' => 'No se encontró un archivo CSV en la solicitud.'], 400);
         }
     }
-
-
 }
