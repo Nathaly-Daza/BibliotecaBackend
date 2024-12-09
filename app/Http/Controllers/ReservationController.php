@@ -41,7 +41,7 @@ class ReservationController extends Controller
         }
     }
 
-    // Método para almacenar una nueva reserva
+/*     // Método para almacenar una nueva reserva
     public function store($proj_id, $use_id, Request $request)
     {
         // Reglas de validación
@@ -55,12 +55,12 @@ class ReservationController extends Controller
             'recurrenceType' => 'required_if:isRecurring,true|in:weekly,monthly',
             'recurrenceEndDate' => 'required_if:isRecurring,true|date|after_or_equal:res_date',
         ];
-
+    
         $messages = [
             'recurrenceType.required_if' => 'El tipo de recurrencia es requerido si es una reserva recurrente.',
             'recurrenceEndDate.required_if' => 'La fecha de fin de recurrencia es requerida.',
         ];
-
+    
         // Validación
         $validator = Validator::make($request->all(), $rules, $messages);
         if ($validator->fails()) {
@@ -69,24 +69,24 @@ class ReservationController extends Controller
                 'message' => $validator->errors()->all()
             ], 400);
         }
-
+    
         // Verificar si es una reserva recurrente
         $isRecurring = $request->input('isRecurring', false);
         $recurrenceType = $request->input('recurrenceType');
         $recurrenceEndDate = $request->input('recurrenceEndDate');
-
+    
         if ($isRecurring) {
             $currentDate = Carbon::create($request->res_date);
             $endDate = Carbon::create($recurrenceEndDate);
-
+    
             while ($currentDate <= $endDate) {
                 $existingReservation = Reservation::where('spa_id', $request->spa_id)
                     ->where('res_date', $currentDate->format('Y-m-d'))
                     ->where(function ($query) use ($request) {
                         $query->whereBetween('res_start', [$request->res_start, $request->res_end])
-                            ->orWhereBetween('res_end', [$request->res_start, $request->res_end]);
+                              ->orWhereBetween('res_end', [$request->res_start, $request->res_end]);
                     })->exists();
-
+    
                 if (!$existingReservation) {
                     Reservation::create([
                         'res_date' => $currentDate->format('Y-m-d'),
@@ -97,7 +97,7 @@ class ReservationController extends Controller
                         'res_status' => 1,
                     ]);
                 }
-
+    
                 // Incrementar la fecha según el tipo de recurrencia
                 if ($recurrenceType === 'weekly') {
                     $currentDate->addWeek();
@@ -105,14 +105,134 @@ class ReservationController extends Controller
                     $currentDate->addMonth();
                 }
             }
-
+    
             return response()->json(['message' => 'Reservas recurrentes creadas exitosamente'], 201);
         }
-
+    
         // Si no es recurrente, crear una sola reserva
         Reservation::create($request->all());
         return response()->json(['message' => 'Reserva creada exitosamente'], 201);
     }
+ */
+
+/*  public function store($proj_id, $use_id, Request $request)
+    {
+
+        // Reglas de validación para los datos de la reserva
+        $rules = [
+            'res_date' => ['required', 'regex:/^(\d{4})(\/|-)(0[1-9]|1[0-2])\2([0-2][0-9]|3[0-1])$/'],
+            'res_start' => ['required', 'regex:/^([0-1][0-9]|2[0-3])(:)([0-5][0-9])$/'],
+            'res_end' => ['required', 'regex:/^([0-1][0-9]|2[0-3])(:)([0-5][0-9])$/'],
+            'spa_id' => 'required|integer',
+            'use_id' => 'required|integer'
+
+        ];
+        // Mensajes personalizados para las reglas de validación
+        $messages = [
+            'res_date.required' => 'La fecha de la reserva es requerida.',
+            'res_date.regex' => 'El formato de la fecha de la reserva no es valido.',
+            'res_start.required' => 'La hora inicial de la reserva es requerida.',
+            'res_start.regex' => 'El formato de la hora inicial de la reserva no es valido.',
+            'res_end.required' => 'La hora final de la reserva es requerida.',
+            'res_end.regex' => 'El formato de la hora final de la reserva no es valido.',
+            'spa_id.required' => 'El espacio a reservar es requerido.',
+            'use_id.required' => 'El usuario que realiza la reserva es requerido.'
+        ];
+
+        // Realiza la validación de los datos de entrada
+        $validator = Validator::make($request->input(), $rules, $messages);
+
+        // Si la validación falla, devuelve un mensaje de error
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => False,
+                'message' => $validator->errors()->all()
+            ], 400);
+        } else {
+
+            // Llama al método Store del modelo Reservation para almacenar la reserva
+            return Reservation::Store($proj_id, $use_id, $request);
+        }
+    } */
+
+    public function store($proj_id, $use_id, Request $request)
+    {
+        // Reglas de validación para las reservas, incluyendo recurrencias
+        $rules = [
+            'res_date' => ['required', 'regex:/^(\d{4})(\/|-)(0[1-9]|1[0-2])\2([0-2][0-9]|3[0-1])$/'],
+            'res_start' => ['required', 'regex:/^([0-1][0-9]|2[0-3])(:)([0-5][0-9])$/'],
+            'res_end' => ['required', 'regex:/^([0-1][0-9]|2[0-3])(:)([0-5][0-9])$/'],
+            'spa_id' => 'required|integer',
+            'use_id' => 'required|integer',
+            'isRecurring' => 'sometimes|boolean',
+            'recurrenceType' => 'required_if:isRecurring,true|in:weekly,monthly',
+            'recurrenceEndDate' => 'required_if:isRecurring,true|date|after_or_equal:res_date',
+        ];
+    
+        // Mensajes personalizados para validaciones
+        $messages = [
+            'res_date.required' => 'La fecha de la reserva es requerida.',
+            'res_date.regex' => 'El formato de la fecha de la reserva no es válido.',
+            'res_start.required' => 'La hora inicial de la reserva es requerida.',
+            'res_start.regex' => 'El formato de la hora inicial no es válido.',
+            'res_end.required' => 'La hora final de la reserva es requerida.',
+            'res_end.regex' => 'El formato de la hora final no es válido.',
+            'spa_id.required' => 'El espacio a reservar es requerido.',
+            'use_id.required' => 'El usuario que realiza la reserva es requerido.',
+            'isRecurring.boolean' => 'El valor de isRecurring debe ser verdadero o falso.',
+            'recurrenceType.required_if' => 'El tipo de recurrencia es requerido si la reserva es recurrente.',
+            'recurrenceType.in' => 'El tipo de recurrencia debe ser semanal o mensual.',
+            'recurrenceEndDate.required_if' => 'La fecha de fin de recurrencia es requerida si la reserva es recurrente.',
+            'recurrenceEndDate.after_or_equal' => 'La fecha de fin de recurrencia debe ser igual o posterior a la fecha de la reserva.',
+        ];
+    
+        // Validación de datos
+        $validator = Validator::make($request->all(), $rules, $messages);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors()->all(),
+            ], 400);
+        }
+    
+        // Verificar si la reserva es recurrente
+        $isRecurring = $request->input('isRecurring', false);
+        $recurrenceType = $request->input('recurrenceType');
+        $recurrenceEndDate = $request->input('recurrenceEndDate');
+    
+        if ($isRecurring) {
+            $currentDate = Carbon::create($request->res_date);
+            $endDate = Carbon::create($recurrenceEndDate);
+    
+            while ($currentDate <= $endDate) {
+                $request->merge(['res_date' => $currentDate->format('Y-m-d')]);
+    
+                // Valida y crea cada reserva recurrente
+                $response = Reservation::Store($proj_id, $use_id, $request);
+    
+                if ($response->status() !== 200) {
+                    return $response; // Si falla una, detiene el proceso
+                }
+    
+                // Incrementa la fecha según el tipo de recurrencia
+                if ($recurrenceType === 'weekly') {
+                    $currentDate->addWeek();
+                } elseif ($recurrenceType === 'monthly') {
+                    $currentDate->addMonth();
+                }
+            }
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Reservas recurrentes creadas exitosamente.',
+            ], 201);
+        }
+    
+        // Si no es recurrente, llama al método de reserva única
+        return Reservation::Store($proj_id, $use_id, $request);
+    }
+    
 
 
     // Método para mostrar una reserva específica por su ID

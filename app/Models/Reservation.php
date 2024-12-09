@@ -23,8 +23,10 @@ class Reservation extends Model
         'res_status',
         'spa_id',
         'use_id',
-        /*  'recurrence_type',
-        'recurrence_end_date',*/
+        'isRecurring',
+        'recurrenceType',
+        'recurrenceEndDate',
+
     ];
 
     public $timestamps = false;
