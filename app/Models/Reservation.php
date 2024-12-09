@@ -524,7 +524,6 @@ class Reservation extends Model
                 'sp.spa_name AS Espacio',
                 'us.use_mail AS Correo',
                 'res.res_status AS Estado',
-                'sp.proj_id AS Proyecto'
             )
             ->where("res." . $column, 'like', '%' . $data . '%')->where('sp.proj_id', $proj_id)->OrderBy("res." . $column, 'DESC')->get();
         return $reservation;

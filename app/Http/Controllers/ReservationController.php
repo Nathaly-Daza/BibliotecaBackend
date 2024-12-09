@@ -19,8 +19,9 @@ class ReservationController extends Controller
 
         $reservations = DB::table('reservations')
             ->join('spaces', 'reservations.spa_id', '=', 'spaces.spa_id')
+            ->join('users', 'reservations.use_id', '=', 'users.use_id')
             ->where('spaces.proj_id', $proj_id)
-            ->select('reservations.*', 'spaces.spa_name')
+            ->select('reservations.*', 'spaces.spa_name','users.use_mail')
             ->get();
 
         // Si no hay reservas, devuelve un mensaje de error
@@ -55,12 +56,12 @@ class ReservationController extends Controller
             'recurrenceType' => 'required_if:isRecurring,true|in:weekly,monthly',
             'recurrenceEndDate' => 'required_if:isRecurring,true|date|after_or_equal:res_date',
         ];
-    
+
         $messages = [
             'recurrenceType.required_if' => 'El tipo de recurrencia es requerido si es una reserva recurrente.',
             'recurrenceEndDate.required_if' => 'La fecha de fin de recurrencia es requerida.',
         ];
-    
+
         // Validación
         $validator = Validator::make($request->all(), $rules, $messages);
         if ($validator->fails()) {
@@ -69,16 +70,16 @@ class ReservationController extends Controller
                 'message' => $validator->errors()->all()
             ], 400);
         }
-    
+
         // Verificar si es una reserva recurrente
         $isRecurring = $request->input('isRecurring', false);
         $recurrenceType = $request->input('recurrenceType');
         $recurrenceEndDate = $request->input('recurrenceEndDate');
-    
+
         if ($isRecurring) {
             $currentDate = Carbon::create($request->res_date);
             $endDate = Carbon::create($recurrenceEndDate);
-    
+
             while ($currentDate <= $endDate) {
                 $existingReservation = Reservation::where('spa_id', $request->spa_id)
                     ->where('res_date', $currentDate->format('Y-m-d'))
@@ -86,7 +87,7 @@ class ReservationController extends Controller
                         $query->whereBetween('res_start', [$request->res_start, $request->res_end])
                               ->orWhereBetween('res_end', [$request->res_start, $request->res_end]);
                     })->exists();
-    
+
                 if (!$existingReservation) {
                     Reservation::create([
                         'res_date' => $currentDate->format('Y-m-d'),
@@ -97,7 +98,7 @@ class ReservationController extends Controller
                         'res_status' => 1,
                     ]);
                 }
-    
+
                 // Incrementar la fecha según el tipo de recurrencia
                 if ($recurrenceType === 'weekly') {
                     $currentDate->addWeek();
@@ -105,10 +106,10 @@ class ReservationController extends Controller
                     $currentDate->addMonth();
                 }
             }
-    
+
             return response()->json(['message' => 'Reservas recurrentes creadas exitosamente'], 201);
         }
-    
+
         // Si no es recurrente, crear una sola reserva
         Reservation::create($request->all());
         return response()->json(['message' => 'Reserva creada exitosamente'], 201);
@@ -168,7 +169,7 @@ class ReservationController extends Controller
             'recurrenceType' => 'required_if:isRecurring,true|in:weekly,monthly',
             'recurrenceEndDate' => 'required_if:isRecurring,true|date|after_or_equal:res_date',
         ];
-    
+
         // Mensajes personalizados para validaciones
         $messages = [
             'res_date.required' => 'La fecha de la reserva es requerida.',
@@ -185,36 +186,36 @@ class ReservationController extends Controller
             'recurrenceEndDate.required_if' => 'La fecha de fin de recurrencia es requerida si la reserva es recurrente.',
             'recurrenceEndDate.after_or_equal' => 'La fecha de fin de recurrencia debe ser igual o posterior a la fecha de la reserva.',
         ];
-    
+
         // Validación de datos
         $validator = Validator::make($request->all(), $rules, $messages);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
                 'message' => $validator->errors()->all(),
             ], 400);
         }
-    
+
         // Verificar si la reserva es recurrente
         $isRecurring = $request->input('isRecurring', false);
         $recurrenceType = $request->input('recurrenceType');
         $recurrenceEndDate = $request->input('recurrenceEndDate');
-    
+
         if ($isRecurring) {
             $currentDate = Carbon::create($request->res_date);
             $endDate = Carbon::create($recurrenceEndDate);
-    
+
             while ($currentDate <= $endDate) {
                 $request->merge(['res_date' => $currentDate->format('Y-m-d')]);
-    
+
                 // Valida y crea cada reserva recurrente
                 $response = Reservation::Store($proj_id, $use_id, $request);
-    
+
                 if ($response->status() !== 200) {
                     return $response; // Si falla una, detiene el proceso
                 }
-    
+
                 // Incrementa la fecha según el tipo de recurrencia
                 if ($recurrenceType === 'weekly') {
                     $currentDate->addWeek();
@@ -222,17 +223,17 @@ class ReservationController extends Controller
                     $currentDate->addMonth();
                 }
             }
-    
+
             return response()->json([
                 'status' => true,
                 'message' => 'Reservas recurrentes creadas exitosamente.',
             ], 201);
         }
-    
+
         // Si no es recurrente, llama al método de reserva única
         return Reservation::Store($proj_id, $use_id, $request);
     }
-    
+
 
 
     // Método para mostrar una reserva específica por su ID
