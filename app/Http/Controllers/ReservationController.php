@@ -458,7 +458,9 @@ class ReservationController extends Controller
                     continue;
                 }
 
+
                 if (!is_array($row) || count($row) < 6) {
+
                     $responses[] = [
                         "error" => "Fila inválida: " . $index . ". Faltan columnas o datos no válidos."
                     ];
@@ -472,6 +474,9 @@ class ReservationController extends Controller
                 $res_end = trim($row[3]);
                 $res_status = strtolower(trim($row[4])) === 'activo' ? 1 : 0;
                 $spa_name = trim($row[5]);
+                $isRecurring= false;
+                $recurrenceType= '';
+                $recurrenceEndDate= null;
 
                 // Verificar si faltan datos
                 if (!$use_mail || !$res_date || !$res_start || !$res_end || !$spa_name) {
@@ -501,12 +506,13 @@ class ReservationController extends Controller
 
                 // Preparar datos para la reserva
                 $request->merge([
-                    'res_date' => $res_date,
-                    'res_start' => $res_start,
-                    'res_end' => $res_end,
-                    'res_status' => $res_status,
-                    'spa_id' => $space->spa_id,
-                    'use_id' => $user->use_id
+                    'res_date' => (string) $res_date,
+                    'res_start' => (string) $res_start,
+                    'res_end' => (string) $res_end,
+                    'res_status' => (int) $res_status,
+                    'spa_id' => $space->spa_id, // Valor debe ser un entero
+                    'use_id' => $user->use_id, // Valor debe ser un entero
+                    'isRecurring' => false
                 ]);
 
 
@@ -516,12 +522,14 @@ class ReservationController extends Controller
 
 
                 try {
-                    $assistance = ReservationController::store($proj_id, $use_id, $request);
-                    $data = json_decode($assistance->getContent(), true);
+
+                    $reservations = ReservationController::store($proj_id, $use_id, $request);
+
+                    $data = json_decode($reservations->getContent(), true);
 
                     if ($data["status"] === false) {
                         $responses[] = [
-                            "error" => $data["message"] . '. Correo: ' . $use_mail
+                            "error" => $data["message"] . '. Correo: ' . $use_mail .'en la fila:' .$index.' del cvs',
                         ];
                     } else {
                         $count++;
