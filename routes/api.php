@@ -28,6 +28,10 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
+
+
+
+
 Route::middleware(['auth:sanctum', 'check.token.expiry'])->group(function () {
     Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->name('refresh.token');
     Route::Resource('reservations' . URL, ReservationController::class)->names('reservations')->parameter('', 'reservations');

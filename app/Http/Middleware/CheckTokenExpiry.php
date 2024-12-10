@@ -34,10 +34,10 @@ class CheckTokenExpiry
         }
 
         if ($personalAccessToken->expires_at && Carbon::parse($personalAccessToken->expires_at)->isPast()) {
+            // Actualizar la fecha de expiración a 2 minutos más
             return redirect()->route('refresh.token');
         }
 
         return $next($request);
     }
-
 }
