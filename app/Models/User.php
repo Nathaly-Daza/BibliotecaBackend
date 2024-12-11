@@ -24,15 +24,22 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    public static function UserAcces($use_mail){
-        $access = User::select('users.*', 'access.proj_id')
-                    ->join('access', 'users.use_id', '=', 'access.use_id')
-                    ->where('use_mail', '=', $use_mail)->get();
 
-
-
-    return $access;
+    public static function getUserByEmail($email)
+    {
+        return self::where('use_mail', $email)->first();
     }
+
+     // Obtener IDs de proyectos accesibles para el usuario
+     public static function getAccessibleProjects($email)
+     {
+         return self::select('access.proj_id')
+             ->join('access', 'access.use_id', '=', 'users.use_id')
+             ->where('users.use_mail', $email)
+             ->whereIn('access.proj_id', [1, 7]) // Filtro para proyectos específicos
+             ->pluck('proj_id')
+             ->toArray();
+     }
 
     public static function getUsersWithAccessToProjectBiblioteca()
     {

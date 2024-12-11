@@ -18,17 +18,11 @@ class AuthController extends Controller
     {
 
 
-        $access = User::UserAcces($request->use_mail);
         // Buscar el usuario por correo electrónico
-        $user = DB::table('users')->where('use_mail', '=', $request->use_mail)->first();
+        $user = User::getUserByEmail($request->use_mail);
 
         // Obtener los IDs de proyectos a los que tiene acceso el usuario
-        $projectIds = DB::table('access')
-            ->join('users', 'access.use_id', '=', 'users.use_id')
-            ->where('users.use_mail', $request->use_mail)
-            ->whereIn('access.proj_id', [1, 7]) // Filtra solo acc_id 1 o 7
-            ->pluck('proj_id')
-            ->toArray(); // Convertimos la colección en un arreglo plano
+        $projectIds = User::getAccessibleProjects($request->use_mail);
 
         // Definir el endpoint de la API dependiendo de los proyectos a los que tiene acceso el usuario
         if (in_array(1, $projectIds)) {
@@ -55,8 +49,6 @@ class AuthController extends Controller
             $token = isset($responseData['token']) ? $responseData['token'] : null;
 
             if ($token !== null) {
-
-
 
                 $user = User::find($user->use_id);
                 Auth::login($user);
@@ -95,7 +87,6 @@ class AuthController extends Controller
 
         $token = explode('|', $request->bearerToken())[1];
 
-
         // Verificar si el token actual ha expirado
         $existingToken = DB::table('personal_access_tokens')
             ->where('tokenable_id', $user)
@@ -110,7 +101,7 @@ class AuthController extends Controller
             // Crear un nuevo token con tiempo de expiración
             $tokenResult = $user->createToken('API TOKEN');
             $token = $tokenResult->plainTextToken;
-            $expiration = now()->addMinutes(1);  // Establecer expiración de 1 hora
+            $expiration = now()->addHours(24);  // Establecer expiración de 1 hora
 
             // Guardar la expiración del token en la base de datos
             DB::table('personal_access_tokens')
